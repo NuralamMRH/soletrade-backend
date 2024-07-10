@@ -3,11 +3,10 @@ const mongoose = require("mongoose");
 const productSchema = mongoose.Schema({
   name: {
     type: String,
-    required: true,
+    default: "",
   },
   description: {
     type: String,
-    required: true,
   },
   richDescription: {
     type: String,
@@ -26,10 +25,18 @@ const productSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Brand",
   },
+  model: {
+    type: String,
+    default: "",
+  },
   category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Category",
-    required: true,
+  },
+
+  attributeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Attribute",
   },
 
   variations: [
@@ -37,30 +44,41 @@ const productSchema = mongoose.Schema({
       attributeOptionId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "AttributeOption",
-        required: true,
-      },
-      attributeBasedPrice: {
-        type: Number,
-        default: 0,
       },
     },
   ],
-  itemCondition: {
+  sku: {
     type: String,
-    enum: ["New", "Used", "New with Defects"],
-    default: "Pending",
+    default: "",
+  },
+  colorway: {
+    type: String,
+    default: "",
+  },
+  mainColor: {
+    type: String,
+    default: "",
+  },
+  retailPrice: {
+    type: Number,
+    default: 0,
   },
   rating: {
     type: Number,
     default: 0,
   },
-  numReviews: {
+  numViews: {
     type: Number,
     default: 0,
   },
   isFeatured: {
     type: Boolean,
     default: false,
+  },
+
+  publishDate: {
+    type: Date,
+    default: Date.now,
   },
   dateCreated: {
     type: Date,

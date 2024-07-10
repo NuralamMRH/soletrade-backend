@@ -103,8 +103,9 @@ router.get("/:id", async (req, res) => {
 router.put(
   "/:id",
   uploadOptions.fields([
-    { name: "image", maxCount: 1 },
-    { name: "images", maxCount: 100 },
+    { name: "appLogo", maxCount: 1 },
+    { name: "homeSlider", maxCount: 100 },
+    { name: "soleCheckSlider", maxCount: 100 },
   ]),
   async (req, res) => {
     try {
@@ -118,27 +119,40 @@ router.put(
       }
 
       const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-      let imagepath = product.image;
+      let imagepath = appContent.appLogo;
 
       // Handle single file upload
-      const imageFile = req.files && req.files["image"];
+      const imageFile = req.files && req.files["appLogo"];
       if (imageFile) {
         const fileName = imageFile[0].filename;
         imagepath = `${basePath}${fileName}`;
       }
 
       // Handle multiple file upload
-      const imagesFiles = req.files && req.files["images"];
-      let imagesPaths = product.images;
+      const imagesFiles = req.files && req.files["homeSlider"];
+      let imagesPaths = appContent.homeSlider;
       if (imagesFiles) {
         imagesPaths = imagesFiles.map((file) => `${basePath}${file.filename}`);
+      } else {
+        imagesPaths = appContent.homeSlider;
       }
 
-      const updatedAppContent = await Product.findByIdAndUpdate(
+      const soleCheckFiles = req.files && req.files["soleCheckSlider"];
+      let soleCheckPaths = appContent.homeSlider;
+      if (soleCheckFiles) {
+        soleCheckPaths = soleCheckFiles.map(
+          (file) => `${basePath}${file.filename}`
+        );
+      } else {
+        soleCheckPaths = appContent.soleCheckSlider;
+      }
+
+      const updatedAppContent = await AppContent.findByIdAndUpdate(
         req.params.id,
         {
           appLogo: imagepath,
           homeSlider: imagesPaths,
+          soleCheckSlider: soleCheckPaths,
         },
         { new: true }
       );

@@ -1,5 +1,6 @@
 const express = require("express");
 const { AttributeOption } = require("../models/attributeOption");
+const { Attribute } = require("../models/attribute");
 const router = express.Router();
 
 router.get(`/`, async (req, res) => {
@@ -79,6 +80,17 @@ router.delete("/:id", async (req, res) => {
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
+});
+
+router.get(`/attribute/:attributeId`, async (req, res) => {
+  const AttributeOptionList = await AttributeOption.find({
+    attributeId: req.params.attributeId,
+  }).populate("attributeId");
+
+  if (!AttributeOptionList) {
+    res.status(500).json({ success: false });
+  }
+  res.send(AttributeOptionList);
 });
 
 module.exports = router;

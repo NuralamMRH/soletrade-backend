@@ -58,14 +58,16 @@ router.get("/:id", async (req, res) => {
 
 router.post("/", uploadOptions.single("image"), async (req, res) => {
   const file = req.file;
-  if (!file) return res.status(400).send("No image in the request");
-
-  const fileName = file.filename;
-  const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
-
+  let basePath;
+  if (file) {
+    const fileName = file.filename;
+    basePath = `${req.protocol}://${req.get(
+      "host"
+    )}/public/uploads/${fileName}`;
+  }
   let category = new Category({
     name: req.body.name,
-    image: `${basePath}${fileName}`,
+    image: basePath,
   });
   category = await category.save();
 

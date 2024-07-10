@@ -10,6 +10,11 @@ const appContentSchema = mongoose.Schema({
       type: String,
     },
   ],
+  soleCheckSlider: [
+    {
+      type: String,
+    },
+  ],
 });
 
 appContentSchema.virtual("id").get(function () {

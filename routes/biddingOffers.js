@@ -5,8 +5,20 @@ const router = express.Router();
 
 router.get(`/`, async (req, res) => {
   const biddingList = await BiddingOffer.find()
-    .populate("user", "name")
-    .populate("productId", "name")
+    .populate({
+      path: "productId",
+      select: "name richDescription image",
+    })
+
+    .populate({
+      path: "sellerOffer",
+      select: "-bidderOffer -productId",
+    })
+    .populate({
+      path: "user",
+      select: "-passwordHash",
+    })
+    .populate("shippingLocation")
     .populate({
       path: "selectedAttributeId",
       select: "optionName",
@@ -26,8 +38,20 @@ router.get(`/`, async (req, res) => {
 router.get(`/:id`, async (req, res) => {
   try {
     const biddingOffer = await BiddingOffer.findById(req.params.id)
-      .populate("user", "name")
-      .populate("productId", "name")
+      .populate({
+        path: "productId",
+        select: "name richDescription image",
+      })
+
+      .populate({
+        path: "sellerOffer",
+        select: "-bidderOffer -productId",
+      })
+      .populate({
+        path: "user",
+        select: "-passwordHash",
+      })
+      .populate("shippingLocation")
       .populate({
         path: "selectedAttributeId",
         select: "optionName",
@@ -52,14 +76,23 @@ router.get(`/:id`, async (req, res) => {
 
 router.post("/", async (req, res) => {
   let biddingOffer = new BiddingOffer({
+    biddingType: req.body.biddingType,
+    biddingStatus: req.body.biddingStatus,
     user: req.body.user,
     productId: req.body.productId,
+    sellerOffer: req.body.sellerOffer,
+    itemCondition: req.body.itemCondition,
+    packaging: req.body.packaging,
     selectedAttributeId: req.body.selectedAttributeId,
     offeredPrice: req.body.offeredPrice,
-    itemCondition: req.body.itemCondition,
-    status: req.body.status,
+    totalPrice: req.body.totalPrice,
     offerCreateDate: req.body.offerCreateDate,
     validUntil: req.body.validUntil,
+    paymentMethod: req.body.paymentMethod,
+    paymentStatus: req.body.paymentStatus,
+    paymentDate: req.body.paymentDate,
+    shippingStatus: req.body.shippingStatus,
+    shippingLocation: req.body.shippingLocation,
   });
   biddingOffer = await biddingOffer.save();
 
@@ -73,8 +106,13 @@ router.put("/:id", async (req, res) => {
   const biddingOffer = await BiddingOffer.findByIdAndUpdate(
     req.params.id,
     {
+      biddingType: req.body.biddingType,
+      biddingStatus: req.body.biddingStatus,
       offeredPrice: req.body.offeredPrice,
-      status: req.body.status,
+      totalPrice: req.body.totalPrice,
+      paymentStatus: req.body.paymentStatus,
+      validUntil: req.body.validUntil,
+      shippingStatus: req.body.shippingStatus,
     },
     { new: true }
   );
@@ -124,8 +162,20 @@ router.get(`/get/count`, async (req, res) => {
 
 router.get(`/get/useroffer/:userid`, async (req, res) => {
   const userOfferList = await BiddingOffer.find({ user: req.params.userid })
-    .populate("user", "name")
-    .populate("productId", "name")
+    .populate({
+      path: "productId",
+      select: "name richDescription image",
+    })
+
+    .populate({
+      path: "sellerOffer",
+      select: "-bidderOffer -productId",
+    })
+    .populate({
+      path: "user",
+      select: "-passwordHash",
+    })
+    .populate("shippingLocation")
     .populate({
       path: "selectedAttributeId",
       select: "optionName",
@@ -140,6 +190,84 @@ router.get(`/get/useroffer/:userid`, async (req, res) => {
     res.status(500).json({ success: false });
   }
   res.send(userOfferList);
+});
+
+router.get(`/get/product/:productId`, async (req, res) => {
+  const productOfferList = await BiddingOffer.find({
+    productId: req.params.productId,
+  })
+
+    .populate({
+      path: "sellerOffer",
+      select: "-bidderOffer -productId",
+    })
+    .populate({
+      path: "user",
+      select: "-passwordHash",
+    })
+    .populate("shippingLocation")
+    .populate({
+      path: "selectedAttributeId",
+      select: "optionName",
+      populate: {
+        path: "attributeId",
+        select: "name",
+      },
+    })
+    .sort({ validUntil: -1 });
+
+  if (!productOfferList) {
+    res.status(500).json({ success: false });
+  }
+  res.send(productOfferList);
+});
+
+router.get(`/get/product/:productId/:selectedAttributeId`, async (req, res) => {
+  const productId = req.params.productId;
+  const selectedAttributeId = req.params.selectedAttributeId;
+
+  const productOfferList = await BiddingOffer.find({
+    productId: productId,
+    selectedAttributeId: selectedAttributeId,
+  })
+    .populate("user", "name")
+    .populate("productId", "name")
+    .populate({
+      path: "selectedAttributeId",
+      select: "optionName",
+      populate: {
+        path: "attributeId",
+        select: "name",
+      },
+    })
+    .sort({ validUntil: -1 });
+
+  if (!productOfferList) {
+    res.status(500).json({ success: false });
+  }
+  res.send(productOfferList);
+});
+
+router.get(`/get/attributeOption/:selectedAttributeId`, async (req, res) => {
+  const productOfferList = await BiddingOffer.find({
+    selectedAttributeId: req.params.selectedAttributeId,
+  })
+    .populate("user", "name")
+    .populate("productId", "name")
+    .populate({
+      path: "selectedAttributeId",
+      select: "optionName",
+      populate: {
+        path: "attributeId",
+        select: "name",
+      },
+    })
+    .sort({ validUntil: -1 });
+
+  if (!productOfferList) {
+    res.status(500).json({ success: false });
+  }
+  res.send(productOfferList);
 });
 
 module.exports = router;

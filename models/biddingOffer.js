@@ -1,6 +1,16 @@
 const mongoose = require("mongoose");
 
 const biddingOfferSchema = mongoose.Schema({
+  biddingType: {
+    type: String,
+    default: "Offer",
+    required: true,
+  },
+  biddingStatus: {
+    type: String,
+    enum: ["Active", "Sold", "Banned"],
+    default: "Active",
+  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -11,10 +21,18 @@ const biddingOfferSchema = mongoose.Schema({
     ref: "Product",
     required: true,
   },
+  sellerOffer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "SellingItem",
+  },
   itemCondition: {
     type: String,
     enum: ["New", "Used", "New with Defects"],
     default: "New",
+  },
+  packaging: {
+    type: String,
+    default: "Good",
   },
   selectedAttributeId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -25,10 +43,9 @@ const biddingOfferSchema = mongoose.Schema({
     type: Number,
     required: true,
   },
-  status: {
-    type: String,
-    enum: ["Pending", "Accepted", "Rejected", "End"],
-    default: "Pending",
+  totalPrice: {
+    type: Number,
+    required: true,
   },
   offerCreateDate: {
     type: Date,
@@ -36,7 +53,26 @@ const biddingOfferSchema = mongoose.Schema({
   },
   validUntil: {
     type: Date,
+  },
+  paymentMethod: {
+    type: String,
     required: true,
+  },
+  paymentStatus: {
+    type: String,
+    enum: ["Pending", "Paid"],
+    default: "Pending",
+  },
+  paymentDate: {
+    type: Date,
+  },
+  shippingStatus: {
+    type: String,
+    default: "Pending",
+  },
+  shippingLocation: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Shipping",
   },
 });
 

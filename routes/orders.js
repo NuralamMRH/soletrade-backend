@@ -6,23 +6,19 @@ const router = express.Router();
 
 router.get(`/`, async (req, res) => {
   const orderList = await Order.find()
-    .populate("user", "name")
     .populate({
-      path: "orderItems",
-      populate: [
-        {
-          path: "biddingOfferId",
-          populate: {
-            path: "productId",
-            select: "name",
-          },
-          populate: {
-            path: "selectedAttributeId",
-            select: "optionName",
-            populate: "attributeId",
-          },
-        },
-      ],
+      path: "mainProduct",
+      select: "name richDescription image",
+    })
+    .populate("sellerOffer", "sellingPrice")
+    .populate({
+      path: "sellerOffer",
+      select: "-bidderOffer -productId",
+      populate: "selectedAttributeId",
+    })
+    .populate({
+      path: "user",
+      select: "-passwordHash",
     })
     .sort({ orderCreateAt: -1 });
 
@@ -35,23 +31,19 @@ router.get(`/`, async (req, res) => {
 router.get(`/:id`, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
-      .populate("user", "name")
       .populate({
-        path: "orderItems",
-        populate: [
-          {
-            path: "biddingOfferId",
-            populate: {
-              path: "productId",
-              select: "name",
-            },
-            populate: {
-              path: "selectedAttributeId",
-              select: "optionName",
-              populate: "attributeId",
-            },
-          },
-        ],
+        path: "mainProduct",
+        select: "name richDescription image",
+      })
+      .populate("sellerOffer", "sellingPrice")
+      .populate({
+        path: "sellerOffer",
+        select: "-bidderOffer -productId",
+        populate: "selectedAttributeId",
+      })
+      .populate({
+        path: "user",
+        select: "-passwordHash",
       });
 
     if (!order) {
@@ -68,44 +60,23 @@ router.get(`/:id`, async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const orderItemsIds = await Promise.all(
-    req.body.orderItems.map(async (orderItem) => {
-      let newOrderItem = new OrderItem({
-        quantity: orderItem.quantity,
-        biddingOfferId: orderItem.biddingOfferId,
-      });
-
-      newOrderItem = await newOrderItem.save();
-
-      return newOrderItem._id;
-    })
-  );
-
-  const totalPrices = await Promise.all(
-    orderItemsIds.map(async (orderItemId) => {
-      const orderItem = await OrderItem.findById(orderItemId).populate({
-        path: "biddingOfferId",
-        select: "offeredPrice",
-      });
-
-      const totalPrice =
-        orderItem.biddingOfferId.offeredPrice * orderItem.quantity;
-      return totalPrice;
-    })
-  );
-
-  const totalPrice = totalPrices.reduce((a, b) => a + b, 0);
-
   let order = new Order({
-    orderItems: orderItemsIds,
-    totalPrice: totalPrice,
-    shippingAddress1: req.body.shippingAddress1,
-    shippingAddress2: req.body.shippingAddress2,
+    orderType: req.body.orderType,
+    orderStatus: req.body.orderStatus,
+    validUntil: req.body.validUntil,
+    totalPrice: req.body.totalPrice,
+    offerPrice: req.body.offerPrice,
+    sellerOffer: req.body.sellerOffer,
+    mainProduct: req.body.mainProduct,
+    size: req.body.size,
+    billingAddress1: req.body.billingAddress1,
+    billingAddress2: req.body.billingAddress2,
     city: req.body.city,
     zip: req.body.zip,
     country: req.body.country,
     phone: req.body.phone,
     itemCondition: req.body.itemCondition,
+    packaging: req.body.packaging,
     paymentMethod: req.body.paymentMethod,
     paymentStatus: req.body.paymentStatus,
     paymentDate: req.body.paymentDate,
@@ -124,7 +95,12 @@ router.put("/:id", async (req, res) => {
   const order = await Order.findByIdAndUpdate(
     req.params.id,
     {
+      orderType: req.body.orderType,
+      orderStatus: req.body.orderStatus,
+      validUntil: req.body.validUntil,
       paymentStatus: req.body.paymentStatus,
+      paymentMethod: req.body.paymentMethod,
+      phone: req.body.phone,
       shippingStatus: req.body.shippingStatus,
     },
     { new: true }
@@ -135,26 +111,22 @@ router.put("/:id", async (req, res) => {
   res.send(order);
 });
 
-router.delete("/:id", (req, res) => {
-  Order.findByIdAndDelete(req.params.id)
-    .then(async (order) => {
-      if (order) {
-        await order.orderItems.map(async (orderItem) => {
-          await OrderItem.findByIdAndDelete(orderItem);
-        });
-        return res
-          .status(200)
-          .json({ success: true, message: "The order is deleted!" });
-      } else {
-        return res
-          .status(404)
-          .json({ success: false, message: "order not found!" });
-      }
-    })
-    .catch((err) => {
-      console.error("Error deleting order:", err);
-      return res.status(500).json({ success: false, error: err });
-    });
+router.delete("/:id", async (req, res) => {
+  try {
+    const order = await Order.findOneAndDelete({ _id: req.params.id });
+
+    if (order) {
+      return res
+        .status(200)
+        .json({ success: true, message: "The order is deleted!" });
+    } else {
+      return res
+        .status(404)
+        .json({ success: false, message: "order not found!" });
+    }
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 router.get("/get/totalsales", async (req, res) => {
@@ -189,21 +161,20 @@ router.get(`/get/count`, async (req, res) => {
 router.get(`/get/userorders/:userid`, async (req, res) => {
   const userOrderList = await Order.find({ user: req.params.userid })
     .populate({
-      path: "orderItems",
-      populate: {
-        path: "product",
-        populate: "category",
-      },
+      path: "mainProduct",
+      select: "name richDescription image",
+    })
+    .populate("sellerOffer", "sellingPrice")
+    .populate({
+      path: "sellerOffer",
+      select: "-bidderOffer -productId",
+      populate: "selectedAttributeId",
     })
     .populate({
-      path: "selectedAttributeId",
-      select: "optionName",
-      populate: {
-        path: "attributeId",
-        select: "name",
-      },
+      path: "user",
+      select: "-passwordHash",
     })
-    .sort({ dateOrdered: -1 });
+    .sort({ orderCreateAt: -1 });
 
   if (!userOrderList) {
     res.status(500).json({ success: false });
@@ -211,4 +182,76 @@ router.get(`/get/userorders/:userid`, async (req, res) => {
   res.send(userOrderList);
 });
 
+router.get(`/get/productorders/:mainProduct`, async (req, res) => {
+  const productOrderList = await Order.find({
+    mainProduct: req.params.mainProduct,
+  })
+    .populate({
+      path: "mainProduct",
+      select: "name richDescription image",
+    })
+    .populate("sellerOffer", "sellingPrice")
+    .populate({
+      path: "sellerOffer",
+      select: "-bidderOffer -productId",
+      populate: "selectedAttributeId",
+    })
+    .populate({
+      path: "user",
+      select: "-passwordHash",
+    })
+    .sort({ orderCreateAt: -1 });
+
+  if (!productOrderList) {
+    res.status(500).json({ success: false });
+  }
+  res.send(productOrderList);
+});
+
+router.get(`/get/sizesorders/:mainProduct/:size`, async (req, res) => {
+  const mainProduct = req.params.mainProduct;
+  const size = req.params.size;
+
+  const productOrderList = await Order.find({
+    mainProduct: mainProduct,
+    size: size,
+  })
+    .populate({
+      path: "mainProduct",
+      select: "name richDescription image",
+    })
+    .populate("sellerOffer", "sellingPrice")
+    .populate({
+      path: "sellerOffer",
+      select: "-bidderOffer -productId",
+      populate: "selectedAttributeId",
+    })
+    .populate({
+      path: "user",
+      select: "-passwordHash",
+    })
+    .sort({ orderCreateAt: -1 });
+
+  if (!productOrderList) {
+    res.status(500).json({ success: false });
+  }
+  res.send(productOrderList);
+});
+
 module.exports = router;
+
+// .populate({
+//       path: "orderItems",
+//       populate: {
+//         path: "product",
+//         populate: "category",
+//       },
+//     })
+//     .populate({
+//       path: "selectedAttributeId",
+//       select: "optionName",
+//       populate: {
+//         path: "attributeId",
+//         select: "name",
+//       },
+//     })

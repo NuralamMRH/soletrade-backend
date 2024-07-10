@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const brandSchema = mongoose.Schema({
+const soleCheckBrandSchema = mongoose.Schema({
   name: {
     type: String,
     required: true,
@@ -11,12 +11,12 @@ const brandSchema = mongoose.Schema({
   },
 });
 
-brandSchema.virtual("id").get(function () {
+soleCheckBrandSchema.virtual("id").get(function () {
   return this._id.toHexString();
 });
 
-brandSchema.set("toJSON", {
+soleCheckBrandSchema.set("toJSON", {
   virtuals: true,
 });
 
-exports.Brand = mongoose.model("Brand", brandSchema);
+exports.SoleCheckBrand = mongoose.model("SoleCheckBrand", soleCheckBrandSchema);

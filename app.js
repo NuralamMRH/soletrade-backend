@@ -10,7 +10,7 @@ const errorHandler = require("./helpers/error-handler");
 require("dotenv/config");
 
 // Enable CORS for all routes
-app.use(cors());
+app.use(cors({ origin: "*" }));
 
 //middleware
 app.use(bodyParser.json());
@@ -25,7 +25,6 @@ const blogRoutes = require("./routes/blogPosts");
 const categoriesRoutes = require("./routes/categories");
 const brandRoutes = require("./routes/brands");
 const productsRoutes = require("./routes/products");
-const productPriceSRoutes = require("./routes/productPrices");
 const usersRoutes = require("./routes/users");
 const ordersRoutes = require("./routes/orders");
 const payoutsRoutes = require("./routes/payouts");
@@ -33,6 +32,18 @@ const biddingOfferRoutes = require("./routes/biddingOffers");
 const sellingRoutes = require("./routes/sellingItems");
 const attributeRoutes = require("./routes/attributes");
 const attributeOptionsRoutes = require("./routes/attributeOptions");
+const shippingRoutes = require("./routes/shippings");
+
+const soleCheckBrandsRoutes = require("./routes/soleCheckBrands");
+const soleCheckModelsRoutes = require("./routes/soleCheckModels");
+const soleCheckItemsRoutes = require("./routes/soleCheckItems");
+
+const portfolioItemsRoutes = require("./routes/portfolioItems");
+const wishlistRoutes = require("./routes/wishlists");
+const soleDrawRoutes = require("./routes/soleDraws");
+const calenderNotifiesRoutes = require("./routes/calenderNotifies");
+const drawAttendsRoutes = require("./routes/drawAttends");
+const expoPushTokens = require("./routes/expoPushTokens");
 
 const api = process.env.API_URL;
 
@@ -41,7 +52,6 @@ app.use(`${api}/blogs`, blogRoutes);
 app.use(`${api}/categories`, categoriesRoutes);
 app.use(`${api}/brands`, brandRoutes);
 app.use(`${api}/products`, productsRoutes);
-app.use(`${api}/product-price`, productPriceSRoutes);
 app.use(`${api}/users`, usersRoutes);
 app.use(`${api}/orders`, ordersRoutes);
 app.use(`${api}/payouts`, payoutsRoutes);
@@ -49,53 +59,21 @@ app.use(`${api}/bidding`, biddingOfferRoutes);
 app.use(`${api}/selling`, sellingRoutes);
 app.use(`${api}/attributes`, attributeRoutes);
 app.use(`${api}/attribute-options`, attributeOptionsRoutes);
-// const blogSchema = new Schema({
-//   title: String, // String is shorthand for {type: String}
-//   author: String,
-//   body: String,
+app.use(`${api}/shipping`, shippingRoutes);
 
-//   date: { type: Date, default: Date.now },
-//   hidden: Boolean,
-// });
+app.use(`${api}/solecheckbrand`, soleCheckBrandsRoutes);
+app.use(`${api}/solecheckmodel`, soleCheckModelsRoutes);
+app.use(`${api}/solecheckitems`, soleCheckItemsRoutes);
 
-// const Blog = mongoose.model("Blog", blogSchema);
+app.use(`${api}/portfolio`, portfolioItemsRoutes);
 
-// app.post(`${api}/blog`, (req, res) => {
-//   const blog = new Blog({
-//     title: req.body.title,
-//     author: req.body.author,
-//     body: req.body.body,
+app.use(`${api}/wishlist`, wishlistRoutes);
 
-//     date: req.body.date,
-//     hidden: req.body.hidden,
-//   });
-//   blog
-//     .save()
-//     .then((createdBlog) => {
-//       res.status(201).json(createdBlog);
-//     })
-//     .catch((err) => {
-//       res.status(500).json({
-//         error: err,
-//         success: false,
-//       });
-//     });
-// });
+app.use(`${api}/draws`, soleDrawRoutes);
+app.use(`${api}/user-calender-notifications`, calenderNotifiesRoutes);
+app.use(`${api}/draw-joins`, drawAttendsRoutes);
 
-// app.get(`${api}/`, (req, res) => {
-//   const product = {
-//     id: 1,
-//     name: "dsfgytushf",
-//     image: "defgdfghb",
-//   };
-//   res.send(product);
-// });
-
-// app.post(`${api}/products`, (req, res) => {
-//   const newProduct = req.body;
-//   console.log(newProduct);
-//   res.send(newProduct);
-// });
+app.use(`${api}/expoPushTokens`, expoPushTokens);
 
 //Database
 mongoose

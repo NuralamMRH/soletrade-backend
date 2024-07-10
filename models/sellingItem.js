@@ -1,20 +1,35 @@
 const mongoose = require("mongoose");
 
 const sellingSchema = mongoose.Schema({
+  sellingType: {
+    type: String,
+    default: "Ask",
+    required: true,
+  },
   sellerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true,
+  },
+  buyerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
   },
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
     required: true,
   },
+  bidderOffer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "BiddingOffer",
+  },
   itemCondition: {
     type: String,
-    enum: ["New", "Used", "New with Defects"],
-    default: "New",
+    default: "Ready to Ship Items",
+  },
+  packaging: {
+    type: String,
+    default: "Good Box",
   },
   selectedAttributeId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -25,15 +40,38 @@ const sellingSchema = mongoose.Schema({
     type: Number,
     required: true,
   },
+  sellingCommission: {
+    type: Number,
+  },
+  sellerFee: {
+    type: Number,
+  },
+  earnings: {
+    type: Number,
+  },
+  cashOutFee: {
+    type: Number,
+  },
+  finalCashOutAmount: {
+    type: Number,
+  },
   status: {
     type: String,
-    enum: ["Pending", "Accepted", "Rejected"],
-    default: "Pending",
+    default: "Active",
+  },
+  itemVerification: {
+    type: String,
+    default: "Verified",
   },
   sellingAt: {
     type: Date,
     default: Date.now,
   },
+  images: [
+    {
+      type: String,
+    },
+  ],
 });
 
 sellingSchema.virtual("id").get(function () {

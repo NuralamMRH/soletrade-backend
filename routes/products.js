@@ -9,6 +9,7 @@ const FILE_TYPE_MAP = {
   "image/png": "png",
   "image/jpeg": "jpeg",
   "image/jpg": "jpg",
+  "image/web": "web",
 };
 
 let uploadCount = 1; // Initialize the upload count
@@ -25,13 +26,28 @@ const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const extension = FILE_TYPE_MAP[file.mimetype];
+    const protocol = req.protocol; // Get the protocol from the request
+
+    // Use the protocol to generate the new file name
     const newFileName = `soletrade-${Date.now()}-${uploadCount}.${extension}`;
     uploadCount++; // Increment the upload count for the next file
+
+    // Combine the protocol, host, and file path
+    const fullPath = `${protocol}://${req.get(
+      "host"
+    )}/public/uploads/${newFileName}`;
+
     cb(null, newFileName);
   },
 });
 
-const uploadOptions = multer({ storage: storage });
+const uploadOptions = multer({
+  storage: storage,
+  limits: {
+    fileSize: 1024 * 1024 * 100,
+    fieldSize: 1024 * 1024 * 100,
+  },
+});
 
 router.get(`/`, async (req, res) => {
   // localhost:3000/api/v1/products?categories=2342342,234234
@@ -43,8 +59,12 @@ router.get(`/`, async (req, res) => {
   const productList = await Product.find(filter)
     .populate("category")
     .populate("brand")
+
     .populate({
-      path: "variations.attributeOptionId", // Assuming the reference field is "attributeOptionId"
+      path: "variations.attributeOptionId",
+      populate: {
+        path: "attributeId",
+      },
     });
 
   if (!productList) {
@@ -59,7 +79,10 @@ router.get(`/:id`, async (req, res) => {
       .populate("category")
       .populate("brand")
       .populate({
-        path: "variations.attributeOptionId", // Assuming the reference field is "attributeOptionId"
+        path: "variations.attributeOptionId",
+        populate: {
+          path: "attributeId",
+        },
       });
 
     if (!product) {
@@ -77,10 +100,7 @@ router.get(`/:id`, async (req, res) => {
 
 router.post(
   `/`,
-  uploadOptions.fields([
-    { name: "image", maxCount: 1 },
-    { name: "images", maxCount: 100 },
-  ]),
+  uploadOptions.fields([{ name: "image", maxCount: 1 }, { name: "images" }]),
   async (req, res) => {
     try {
       const category = await Category.findById(req.body.category);
@@ -88,15 +108,24 @@ router.post(
 
       const imageFile = req.files["image"];
       const fileName = imageFile ? imageFile[0].filename : null;
-      const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+      const basePath = `https://${req.get("host")}/public/uploads/`;
 
-      const imagesFiles = req.files["images"];
       let imagesPaths = [];
-      if (imagesFiles) {
-        imagesPaths = imagesFiles.map((file) => {
-          return `${basePath}${file.filename}`;
-        });
+
+      if (req.files && req.files["images"]) {
+        const imagesFiles = req.files["images"];
+        imagesPaths = imagesFiles.map((file) => `${basePath}${file.filename}`);
       }
+
+      // Parse variations JSON
+      const variations = req.body.variations
+        ? JSON.parse(req.body.variations)
+        : [];
+
+      // Map variations to include the attributeOptionId
+      const variationsWithAttribute = variations.map((variation) => ({
+        attributeOptionId: variation.attributeOptionId,
+      }));
 
       const product = new Product({
         name: req.body.name,
@@ -105,12 +134,19 @@ router.post(
         image: `${basePath}${fileName}`,
         images: imagesPaths,
         brand: req.body.brand,
+        model: req.body.model,
         category: req.body.category,
-        itemCondition: req.body.itemCondition,
-        variations: JSON.parse(req.body.variations),
+        attributeId: req.body.attributeId,
+        variations: variationsWithAttribute, // Use the modified variations array
+        sku: req.body.sku,
+        colorway: req.body.colorway,
+        mainColor: req.body.mainColor,
+        retailPrice: req.body.retailPrice,
         rating: req.body.rating,
-        numReviews: req.body.numReviews,
+        numViews: req.body.numViews,
         isFeatured: req.body.isFeatured,
+        publishDate: req.body.publishDate,
+        dateCreated: req.body.dateCreated,
       });
 
       const savedProduct = await product.save();
@@ -175,10 +211,16 @@ router.put(
           image: imagepath,
           images: imagesPaths,
           brand: req.body.brand,
+          model: req.body.model,
+          sku: req.body.sku,
+          colorway: req.body.colorway,
+          mainColor: req.body.mainColor,
+          retailPrice: req.body.retailPrice,
           category: req.body.category,
           itemCondition: req.body.itemCondition,
           rating: req.body.rating,
-          numReviews: req.body.numReviews,
+          numViews: req.body.numViews,
+          publishDate: req.body.publishDate,
           isFeatured: req.body.isFeatured,
         },
         { new: true }
@@ -195,6 +237,27 @@ router.put(
     }
   }
 );
+
+router.get("/viewed/:id", async (req, res) => {
+  try {
+    const viewed = await Product.findByIdAndUpdate(
+      req.params.id,
+      {
+        $inc: { numViews: 1 }, // Increment numViews by 1
+      },
+      { new: true }
+    );
+
+    if (!viewed) {
+      return res.status(500).send("The product cannot be updated!");
+    }
+
+    res.send(viewed);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
 router.delete("/:id", (req, res) => {
   Product.findByIdAndDelete(req.params.id)
@@ -275,5 +338,30 @@ router.put(
     res.send(productGal);
   }
 );
+
+router.get("/size/:attributeOptionId", async (req, res) => {
+  try {
+    const attributeOptionId = req.params.attributeOptionId;
+
+    const pdItems = await Product.find({
+      variations: {
+        $elemMatch: {
+          attributeOptionId: attributeOptionId,
+        },
+      },
+    });
+
+    if (!pdItems || pdItems.length === 0) {
+      return res.status(404).json({
+        message: "No products found for the given attributeOptionId",
+      });
+    }
+
+    res.json(pdItems);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
 module.exports = router;

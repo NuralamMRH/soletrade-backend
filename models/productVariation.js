@@ -6,10 +6,24 @@ const productVariationSchema = mongoose.Schema({
     ref: "AttributeOption",
     required: true,
   },
+  itemCondition: {
+    type: String,
+    enum: ["New", "Used", "New with Defects"],
+    default: "New",
+  },
   basePrice: {
     type: Number,
     default: 0,
   },
+  countInStock: {
+    type: Number,
+    default: 10,
+  },
+  conditionalImages: [
+    {
+      type: String,
+    },
+  ],
 });
 
 productVariationSchema.virtual("id").get(function () {

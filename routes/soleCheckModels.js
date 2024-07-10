@@ -1,10 +1,11 @@
-const { Brand } = require("../models/brand");
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 
 //image upload
 const multer = require("multer");
+const { SoleCheckModel } = require("../models/soleCheckModel");
+
 const FILE_TYPE_MAP = {
   "image/png": "png",
   "image/jpeg": "jpeg",
@@ -31,7 +32,7 @@ const storage = multer.diskStorage({
 const uploadOptions = multer({ storage: storage });
 
 router.get(`/`, async (req, res) => {
-  const brandList = await Brand.find();
+  const brandList = await SoleCheckModel.find();
 
   if (!brandList) {
     res.status(500).json({ success: false });
@@ -41,7 +42,7 @@ router.get(`/`, async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   try {
-    const brand = await Brand.findById(req.params.id);
+    const brand = await SoleCheckModel.findById(req.params.id);
 
     if (!brand) {
       return res
@@ -63,8 +64,9 @@ router.post("/", uploadOptions.single("image"), async (req, res) => {
   const fileName = file.filename;
   const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
 
-  let brand = new Brand({
+  let brand = new SoleCheckModel({
     name: req.body.name,
+    soleCheckBrand: req.body.soleCheckBrand,
     image: `${basePath}${fileName}`,
   });
   brand = await brand.save();
@@ -74,36 +76,43 @@ router.post("/", uploadOptions.single("image"), async (req, res) => {
   res.send(brand);
 });
 
-router.put("/:id", async (req, res) => {
-  try {
-    const checkedId = req.params.id;
-
-    if (!mongoose.isValidObjectId(checkedId)) {
-      return res.status(400).send("Invalid checked Id");
-    }
-
-    const updatedProduct = await SoleCheckItem.findByIdAndUpdate(
-      checkedId,
-      {
-        checkedStatus: req.body.checkedStatus,
-      },
-      { new: true }
-    );
-
-    if (!updatedProduct) {
-      return res.status(404).send("SoleCheckItem not found");
-    }
-
-    res.send(updatedProduct);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal Server Error");
+router.put("/:id", uploadOptions.single("image"), async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(400).send("Invalid Sole Check Brand Id");
   }
+
+  const brand = await SoleCheckModel.findById(req.params.id);
+  if (!brand) return res.status(400).send("Invalid brand!");
+
+  const file = req.file;
+  let imagePath;
+
+  if (file) {
+    const fileName = file.filename;
+    const basePath = `${req.protocol}://${req.get("host")}/public/uploads/`;
+    imagePath = `${basePath}${fileName}`;
+  } else {
+    imagePath = brand.image;
+  }
+
+  const brandUpdate = await SoleCheckModel.findByIdAndUpdate(
+    req.params.id,
+    {
+      name: req.body.name,
+      soleCheckBrand: req.body.soleCheckBrand,
+      image: imagePath,
+    },
+    { new: true }
+  );
+
+  if (!brandUpdate) return res.status(400).send("the brand cannot be created!");
+
+  res.send(brandUpdate);
 });
 
 router.delete("/:id", async (req, res) => {
   try {
-    const brand = await Brand.findOneAndDelete({ _id: req.params.id });
+    const brand = await SoleCheckModel.findOneAndDelete({ _id: req.params.id });
 
     if (brand) {
       return res
@@ -117,6 +126,17 @@ router.delete("/:id", async (req, res) => {
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
+});
+
+router.get(`/brand/:soleCheckBrand`, async (req, res) => {
+  const modelList = await SoleCheckModel.find({
+    soleCheckBrand: req.params.soleCheckBrand,
+  }).populate("soleCheckBrand");
+
+  if (!modelList) {
+    res.status(500).json({ success: false });
+  }
+  res.send(modelList);
 });
 
 module.exports = router;

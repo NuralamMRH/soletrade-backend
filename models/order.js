@@ -1,34 +1,51 @@
 const mongoose = require("mongoose");
 
 const orderSchema = mongoose.Schema({
-  orderItems: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "OrderItem",
-      required: true,
-    },
-  ],
-  totalPrice: {
-    type: Number,
-  },
-  shippingAddress1: {
+  orderType: {
     type: String,
+    default: "Offer",
     required: true,
   },
-  shippingAddress2: {
+  orderStatus: {
+    type: String,
+    default: "Sold",
+  },
+  validUntil: {
+    type: Date,
+  },
+  totalPrice: {
+    type: Number,
+    required: true,
+  },
+  offerPrice: {
+    type: Number,
+  },
+  sellerOffer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "SellingItem",
+  },
+  mainProduct: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product",
+  },
+  size: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "AttributeOption",
+  },
+  billingAddress1: {
+    type: String,
+  },
+  billingAddress2: {
     type: String,
   },
   city: {
     type: String,
-    required: true,
   },
   zip: {
     type: String,
-    required: true,
   },
   country: {
     type: String,
-    required: true,
   },
   phone: {
     type: String,
@@ -39,7 +56,10 @@ const orderSchema = mongoose.Schema({
     enum: ["New", "Used", "New with Defects"],
     default: "New",
   },
-
+  packaging: {
+    type: String,
+    default: "Good Box",
+  },
   paymentMethod: {
     type: String,
     required: true,
@@ -62,13 +82,6 @@ const orderSchema = mongoose.Schema({
   },
   shippingStatus: {
     type: String,
-    enum: [
-      "Pending",
-      "Shipping Start",
-      "Shipped",
-      "Delivery Unsuccessful",
-      "Delivered",
-    ],
     default: "Pending",
   },
 });
